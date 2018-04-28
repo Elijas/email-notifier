@@ -45,8 +45,7 @@ sentNotifications = 0
 
 
 def sendNotification(subject='', sender=''):
-    return #DEBUG
-    for url in config.IFTTT_WEBHOOK_URLS:
+    for url in config.IFTTT_WEBHOOK_URLS.split('|'):
         r = requests.post(url, data={'value1': subject, 'value2': sender, })
         print('Notification sent: {} {}'.format(r.status_code, r.reason))
 
