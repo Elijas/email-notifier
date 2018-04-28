@@ -60,7 +60,7 @@ def decodeMimeText(s):
         for m in mimeTextEncodingTuples)
 
 
-def searchNewestEmail():
+def searchNewestEmail(searchLimit=None):
     global prevEmailTimestamp, prevEmailTimestampTempNew, sentNotifications
     server = poplib.POP3(config.POP3_SERVER)
     server.user(config.EMAIL_USER)
@@ -70,7 +70,8 @@ def searchNewestEmail():
     resp, items, octets = server.list()
 
     L = len(items)
-    searchLimit = int(config.EMAIL_SEARCH_DEPTH)
+    if searchLimit is None:
+        searchLimit = int(config.EMAIL_SEARCH_DEPTH)
     for i in reversed(range(max(0, L - searchLimit), L)):
         s = items[i].decode("utf-8")
         id, size = s.split(' ')
@@ -189,7 +190,10 @@ try:
     imapListener.start()
     print('IMAP listening has started')
 
-    sendNotification(subject='Notifier is working', sender='Email notifier system has been started')
+    sendNotification(subject='Email notifier is started', sender='You will now receive a sample notification')
+
+    # Helps update the timestamp, so that on event only new emails are sent with notifications
+    searchNewestEmail(searchLimit=1)
 
     for _ in range(92):  # 92 days = 3 Months
         time.sleep(86400)  # 86400s = 1 Day
