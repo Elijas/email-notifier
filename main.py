@@ -8,7 +8,12 @@ import requests
 import imaplib2
 import os
 from threading import *
+import sys
+import codecs
 
+# Hotfix for Heroku's broken utf8 support in logs
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
 class _Config:
     POP3_SERVER = None
@@ -40,7 +45,7 @@ sentNotifications = 0
 
 
 def sendNotification(subject='', sender=''):
-    return
+    return #DEBUG
     for url in config.IFTTT_WEBHOOK_URLS:
         r = requests.post(url, data={'value1': subject, 'value2': sender, })
         print('Notification sent: {} {}'.format(r.status_code, r.reason))
