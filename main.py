@@ -14,6 +14,7 @@ import codecs
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
+
 class _Config:
     POP3_SERVER = None
     IMAP_SERVER = None
@@ -165,6 +166,7 @@ class IMAPListener(object):
     # Replace it with something better.
     def dosync(self):
         print("Received new email")
+        sys.stdout.flush()  # probably not needed
         searchNewestEmail()
 
 
