@@ -11,6 +11,8 @@ from threading import *
 import sys
 import codecs
 
+import time
+
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
@@ -167,6 +169,8 @@ class IMAPListener(object):
         print("Received new email")
         sys.stdout.flush()  # probably not needed
         searchNewestEmail()
+
+        time.sleep(10)
 
 
 # Had to do this stuff in a try-finally, since some testing
