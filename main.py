@@ -170,8 +170,6 @@ class IMAPListener(object):
         sys.stdout.flush()  # probably not needed
         searchNewestEmail()
 
-        time.sleep(10)
-
 
 # Had to do this stuff in a try-finally, since some testing
 # went a little wrong.....
@@ -189,7 +187,7 @@ try:
     imapListener.start()
     print('IMAP listening has started')
 
-    imapListener.idle()
+    time.sleep(60)
 finally:
     # Clean up.
     if imapListener is not None:
