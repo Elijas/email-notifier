@@ -14,6 +14,8 @@ import codecs
 
 import time
 
+import signal
+
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
@@ -173,11 +175,21 @@ class IMAPListener(object):
         sys.stdout.flush()  # probably not needed
         searchNewestEmail()
 
+class GracefulKiller:
+    kill_now = False
+
+    def __init__(self):
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self, signum, frame):
+        self.kill_now = True
 
 # Had to do this stuff in a try-finally, since some testing
 # went a little wrong.....
 imapListener = None
 imapClient = None
+killer = GracefulKiller()
 try:
     # Set the following two lines to your creds and server
     imapClient = imaplib2.IMAP4_SSL(config.IMAP_SERVER)
@@ -195,10 +207,10 @@ try:
     # Helps update the timestamp, so that on event only new emails are sent with notifications
     searchNewestEmail(searchLimit=1)
 
-    for _ in range(92):  # 92 days = 3 Months
-        time.sleep(86400)  # 86400s = 1 Day
-
-    sendNotification(subject='Notifier is stopped', sender='Email notifier system has been stopped')
+    while True:
+        time.sleep(1)
+        if killer.kill_now:
+            break
 finally:
     # Clean up.
     if imapListener is not None:
