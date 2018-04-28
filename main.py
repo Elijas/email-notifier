@@ -108,7 +108,7 @@ def searchNewestEmail(notificationLimit=None):
                     sendNotification(subject, sender)
                     sentNotifications += 1
                     if sentNotifications == notificationLimit:
-                        print('Limit of {} sent notifications is reached'.format(config.IFTTT_NOTIFICATIONS_LIMIT))
+                        print('Limit of {} sent notifications is reached'.format(notificationLimit))
                         break
             else:
                 print('Limit of "{}" email date is reached'.format(prevEmailTimestamp))
