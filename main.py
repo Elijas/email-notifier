@@ -14,7 +14,6 @@ import codecs
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
-
 class _Config:
     POP3_SERVER = None
     IMAP_SERVER = None
@@ -170,7 +169,7 @@ class IMAPListener(object):
         searchNewestEmail()
 
 
-# c testing
+# Had to do this stuff in a try-finally, since some testing
 # went a little wrong.....
 imapListener = None
 imapClient = None
