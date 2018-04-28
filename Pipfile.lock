@@ -1,0 +1,27 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "f77f4d0a9f0be1bd5f8e9e1af4dd3354ed3f60f587e7e01ee057a25aee340965"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "2.7"
+        },
+        "sources": [
+            {
+                "url": "https://pypi.python.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "imaplib2": {
+            "hashes": [
+                "sha256:a35b6d88258696e80aabecfb784e08730b8558fcaaa3061ff2c7f8637afbd0b3",
+                "sha256:dd837de2c6a8ab69bd86134a9c2ecd81c268e21a79092a8f1f0040dab5bd6ab5"
+            ],
+            "version": "==2.45.0"
+        }
+    },
+    "develop": {}
+}
