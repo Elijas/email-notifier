@@ -11,7 +11,6 @@ from threading import *
 import sys
 import codecs
 
-# Hotfix for Heroku's broken utf8 support in logs
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
@@ -196,3 +195,4 @@ finally:
         # This is important!
         imapClient.logout()
     print('IMAP listening is stopped')
+    sys.stdout.flush()  # probably not needed
