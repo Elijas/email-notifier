@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import unicode_literals
 import poplib
 import email
@@ -15,6 +16,7 @@ import time
 
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 sys.stderr = codecs.getwriter('utf8')(sys.stderr)
+
 
 class _Config:
     POP3_SERVER = None
@@ -187,7 +189,10 @@ try:
     imapListener.start()
     print('IMAP listening has started')
 
-    time.sleep(60)
+    sendNotification(subject='Notifier is working', sender='Email notifier system has been started')
+
+    for _ in range(92):
+        time.sleep(86400)  # 86400 = 1 Day
 finally:
     # Clean up.
     if imapListener is not None:
