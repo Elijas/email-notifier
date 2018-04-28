@@ -62,7 +62,7 @@ def decodeMimeText(s):
         for m in mimeTextEncodingTuples)
 
 
-def searchNewestEmail(searchLimit=None):
+def searchNewestEmail(notificationLimit=None):
     global prevEmailTimestamp, prevEmailTimestampTempNew, sentNotifications
     server = poplib.POP3(config.POP3_SERVER)
     server.user(config.EMAIL_USER)
@@ -72,8 +72,7 @@ def searchNewestEmail(searchLimit=None):
     resp, items, octets = server.list()
 
     L = len(items)
-    if searchLimit is None:
-        searchLimit = int(config.EMAIL_SEARCH_DEPTH)
+    searchLimit = int(config.EMAIL_SEARCH_DEPTH)
     for i in reversed(range(max(0, L - searchLimit), L)):
         s = items[i].decode("utf-8")
         id, size = s.split(' ')
@@ -102,11 +101,13 @@ def searchNewestEmail(searchLimit=None):
                 if prevEmailTimestampTempNew is None:
                     prevEmailTimestampTempNew = newEmailTimestamp
 
-                if sentNotifications < int(config.IFTTT_NOTIFICATIONS_LIMIT):
+                if notificationLimit is None:
+                    notificationLimit = int(config.IFTTT_NOTIFICATIONS_LIMIT)
+                if sentNotifications < notificationLimit:
                     print('Found important email: "{}" from "{}" at "{}"'.format(subject, sender, newEmailTimestamp))
                     sendNotification(subject, sender)
                     sentNotifications += 1
-                    if sentNotifications == int(config.IFTTT_NOTIFICATIONS_LIMIT):
+                    if sentNotifications == notificationLimit:
                         print('Limit of {} sent notifications is reached'.format(config.IFTTT_NOTIFICATIONS_LIMIT))
                         break
             else:
@@ -205,7 +206,7 @@ try:
     sendNotification(subject='Email notifier is started', sender='You will now receive a sample notification')
 
     # Helps update the timestamp, so that on event only new emails are sent with notifications
-    searchNewestEmail(searchLimit=1)
+    searchNewestEmail(notificationLimit=1)
 
     while True:
         time.sleep(1)
