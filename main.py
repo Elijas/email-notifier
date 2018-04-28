@@ -191,8 +191,12 @@ try:
 
     sendNotification(subject='Notifier is working', sender='Email notifier system has been started')
 
-    for _ in range(92):
-        time.sleep(86400)  # 86400 = 1 Day
+    # for _ in range(92):
+    #     time.sleep(86400)  # 86400 = 1 Day
+
+    time.sleep(10)
+
+    sendNotification(subject='Notifier is stopped', sender='Email notifier system has been stopped')
 finally:
     # Clean up.
     if imapListener is not None:
