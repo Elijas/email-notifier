@@ -225,8 +225,8 @@ while True:
 
             reconnectTimeout_s = 60 * 60 * 24 * 1
             killer.sleep(reconnectTimeout_s)
-
-            print("Refreshing IMAP connection. timeout={}s".format(reconnectTimeout_s))
+            if not killer.kill_now:
+                print("Refreshing IMAP connection. timeout={}s".format(reconnectTimeout_s))
         finally:
             if imapListener is not None:
                 imapListener.stop()  # Had to do this stuff in a try-finally, since some testing went a little wrong..
@@ -234,7 +234,7 @@ while True:
             if imapClient is not None:
                 imapClient.close()
                 imapClient.logout()  # This is important!
-            print('Conn cleanup is completed for: Listener: {}, Client: {}'
+            print('IMAP listening has stopped, conn cleanup is completed for: Listener: {}, Client: {}'
                   .format(imapListener is not None, imapClient is not None))
             sys.stdout.flush()  # probably not needed
 
