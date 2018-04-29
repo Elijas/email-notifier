@@ -110,8 +110,8 @@ def searchNewestEmail(notificationLimit=int(config.IFTTT_NOTIFICATIONS_LIMIT), s
                     prevEmailTimestampTempNew = newEmailTimestamp
 
                 if sendOnlyTestNotif:
-                    sendNotification('Email notifier has been started',
-                                     '[EXAMPLE EMAIL] ' + subject + ', ' + sender + ', ' + newEmailTimestamp)
+                    sendNotification('Email notifier STARTED!',
+                                     'EXAMPLE EMAIL: ' + subject + ', ' + sender + ', ' + newEmailTimestamp)
                     break
 
                 if sentNotifications < notificationLimit:
