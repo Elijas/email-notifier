@@ -234,7 +234,7 @@ while True:
             if imapClient is not None:
                 imapClient.close()
                 imapClient.logout()  # This is important!
-            print('IMAP listening has stopped, conn cleanup is completed for: Listener: {}, Client: {}'
+            print('IMAP listening has stopped, conn cleanup was run for: Listener: {}, Client: {}'
                   .format(imapListener is not None, imapClient is not None))
             sys.stdout.flush()  # probably not needed
 
