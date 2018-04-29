@@ -241,5 +241,6 @@ while True:
             if killer.kill_now:
                 break
     except imaplib2.IMAP4.abort as e:
-        sendAdminNotificationAndPrint("Conn error, retrying", str(e))
-        killer.sleep(30)
+        retryDelay_s = 30
+        sendAdminNotificationAndPrint("Conn error, retrying in {}s".format(retryDelay_s), str(e))
+        killer.sleep(retryDelay_s)
