@@ -8,7 +8,7 @@ import dateutil.parser
 import requests
 import imaplib2
 import os
-from threading import *
+import threading
 import sys
 import codecs
 
@@ -31,6 +31,8 @@ class _Config:
     IMPORTANT_EMAIL_SUBJECTS = None
     IFTTT_WEBHOOK_URLS = None
     IFTTT_NOTIFICATIONS_LIMIT = None
+    IFTTT_WEBHOOK_ADMIN_URLS = None
+    SEND_TEST_NOTIFICATION = None
 
     def __init__(self):
         for key in [a for a in dir(self) if not a.startswith('__') and not callable(getattr(self, a))]:
@@ -49,10 +51,16 @@ prevEmailTimestampTempNew = None
 sentNotifications = 0
 
 
-def sendNotification(subject='', sender=''):
-    for url in config.IFTTT_WEBHOOK_URLS.split('|'):
-        r = requests.post(url, data={'value1': subject, 'value2': sender, })
-        print('Notification sent: {} {}'.format(r.status_code, r.reason))
+def sendNotification(title='', text='', txtPrefix='Notification', urlsString=config.IFTTT_WEBHOOK_URLS):
+    urls = urlsString.split('|')
+    for i, url in enumerate(urls):
+        r = requests.post(url, data={'value1': title, 'value2': text, })
+        print('{} sent [{} {}, {}/{}]: {} | {}'.format(
+            txtPrefix, r.status_code, r.reason, i + 1, len(urls), title, text))
+
+
+def sendAdminNotificationAndPrint(title='', text=''):
+    sendNotification(title=title, text=text, txtPrefix='Admin Notif.', urlsString=config.IFTTT_WEBHOOK_ADMIN_URLS)
 
 
 def decodeMimeText(s):
@@ -62,7 +70,7 @@ def decodeMimeText(s):
         for m in mimeTextEncodingTuples)
 
 
-def searchNewestEmail(notificationLimit=None):
+def searchNewestEmail(notificationLimit=int(config.IFTTT_NOTIFICATIONS_LIMIT), sendOnlyTestNotif=False):
     global prevEmailTimestamp, prevEmailTimestampTempNew, sentNotifications
     server = poplib.POP3(config.POP3_SERVER)
     server.user(config.EMAIL_USER)
@@ -101,17 +109,20 @@ def searchNewestEmail(notificationLimit=None):
                 if prevEmailTimestampTempNew is None:
                     prevEmailTimestampTempNew = newEmailTimestamp
 
-                if notificationLimit is None:
-                    notificationLimit = int(config.IFTTT_NOTIFICATIONS_LIMIT)
+                if sendOnlyTestNotif:
+                    sendNotification('Email notifier has been started',
+                                     '[EXAMPLE EMAIL] ' + subject + ', ' + sender + ', ' + newEmailTimestamp)
+                    break
+
                 if sentNotifications < notificationLimit:
-                    print('Found important email: "{}" from "{}" at "{}"'.format(subject, sender, newEmailTimestamp))
-                    sendNotification(subject, sender)
+                    sendNotification(subject, sender + ', "' + newEmailTimestamp + '", (' + subject + ')')
                     sentNotifications += 1
-                    if sentNotifications == notificationLimit:
-                        print('Limit of {} sent notifications is reached'.format(notificationLimit))
+                    if sentNotifications >= notificationLimit:
+                        print(
+                            'Email check stopped: Limit of {} sent notifications is reached'.format(notificationLimit))
                         break
             else:
-                print('Limit of "{}" email date is reached'.format(prevEmailTimestamp))
+                print('Email check stopped: Limit of "{}" email date is reached'.format(prevEmailTimestamp))
                 break
     if prevEmailTimestampTempNew is not None:
         prevEmailTimestamp = prevEmailTimestampTempNew
@@ -122,9 +133,9 @@ def searchNewestEmail(notificationLimit=None):
 # the event
 class IMAPListener(object):
     def __init__(self, conn):
-        self.thread = Thread(target=self.idle)
+        self.thread = threading.Thread(target=self.idle)
         self.M = conn
-        self.event = Event()
+        self.event = threading.Event()
 
     def start(self):
         self.thread.start()
@@ -172,9 +183,8 @@ class IMAPListener(object):
     # The method that gets called when a new email arrives.
     # Replace it with something better.
     def dosync(self):
-        print("Received new email")
-        sys.stdout.flush()  # probably not needed
         searchNewestEmail()
+
 
 class GracefulKiller:
     kill_now = False
@@ -184,42 +194,52 @@ class GracefulKiller:
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
     def exit_gracefully(self, signum, frame):
+        print("Caught kill signal: {}".format(signum))
         self.kill_now = True
 
-# Had to do this stuff in a try-finally, since some testing
-# went a little wrong.....
+    def sleep(self, timeout_s):
+        for _ in range(timeout_s):
+            time.sleep(1)
+            if self.kill_now:
+                break
+
+
 imapListener = None
 imapClient = None
 killer = GracefulKiller()
-try:
-    # Set the following two lines to your creds and server
-    imapClient = imaplib2.IMAP4_SSL(config.IMAP_SERVER)
-    imapClient.login(config.EMAIL_USER, config.EMAIL_PASSWORD)
-    # We need to get out of the AUTH state, so we just select
-    # the INBOX.
-    imapClient.select("INBOX")
-    # Start the Idler thread
-    imapListener = IMAPListener(imapClient)
-    imapListener.start()
-    print('IMAP listening has started')
 
-    sendNotification(subject='Email notifier is started', sender='You will now receive a sample notification')
+_sendTestNotification = bool(int(config.SEND_TEST_NOTIFICATION))
+while True:
+    try:
+        try:
+            imapClient = imaplib2.IMAP4_SSL(config.IMAP_SERVER, timeout=60 * 28)  # Default timeout is 29min=None=60*29)
+            imapClient.login(config.EMAIL_USER, config.EMAIL_PASSWORD)
+            imapClient.select("INBOX")  # We need to get out of the AUTH state, so we just select the INBOX.
+            imapListener = IMAPListener(imapClient)  # Start the Idler thread
+            imapListener.start()
+            print('IMAP listening has started')
 
-    # Helps update the timestamp, so that on event only new emails are sent with notifications
-    searchNewestEmail(notificationLimit=1)
+            # Helps update the timestamp, so that on event only new emails are sent with notifications
+            searchNewestEmail(notificationLimit=0, sendOnlyTestNotif=_sendTestNotification)
+            _sendTestNotification = False
 
-    while True:
-        time.sleep(1)
-        if killer.kill_now:
-            break
-finally:
-    # Clean up.
-    if imapListener is not None:
-        imapListener.stop()
-        imapListener.join()
-    if imapClient is not None:
-        imapClient.close()
-        # This is important!
-        imapClient.logout()
-    print('IMAP listening is stopped')
-    sys.stdout.flush()  # probably not needed
+            reconnectTimeout_s = 60 * 60 * 24 * 1
+            killer.sleep(reconnectTimeout_s)
+
+            print("Refreshing IMAP connection. timeout={}s".format(reconnectTimeout_s))
+        finally:
+            if imapListener is not None:
+                imapListener.stop()  # Had to do this stuff in a try-finally, since some testing went a little wrong..
+                imapListener.join()
+            if imapClient is not None:
+                imapClient.close()
+                imapClient.logout()  # This is important!
+            print('Conn cleanup is completed for: Listener: {}, Client: {}'
+                  .format(imapListener is not None, imapClient is not None))
+            sys.stdout.flush()  # probably not needed
+
+            if killer.kill_now:
+                break
+    except imaplib2.IMAP4.abort as e:
+        sendAdminNotificationAndPrint("Conn error, retrying", str(e))
+        killer.sleep(30)
