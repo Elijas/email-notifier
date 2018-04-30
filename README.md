@@ -11,3 +11,7 @@ Stable early prototype. Further development: needs refactoring with tests, futhe
 - Python + IMAP, POP3
 - Notifications managed by IFTTT
 - Deployed on Heroku
+
+## Acknowledgements
+- https://gist.github.com/jexhson/3496039/
+- https://stackoverflow.com/a/31464349/1544154
