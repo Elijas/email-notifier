@@ -128,7 +128,7 @@ def searchNewestEmail(notificationLimit=int(config.IFTTT_NOTIFICATIONS_LIMIT), s
                     break
             else:
                 if sentNotifications == 0:
-                    print('No important emails since the last one at "{}"'.format(prevEmailTimestamp))
+                    print('NO-OP: no new important emails since "{}"'.format(prevEmailTimestamp))
                 else:
                     print(
                         'END: Further search stopped due to a depth limit of "{}"'.format(prevEmailTimestamp))
