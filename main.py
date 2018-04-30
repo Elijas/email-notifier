@@ -26,7 +26,6 @@ class _Config:
     EMAIL_USER = None
     EMAIL_PASSWORD = None
     EMAIL_SEARCH_DEPTH = None
-    INITIAL_PREV_EMAIL_TIMESTAMP = None
     IMPORTANT_EMAIL_SENDERS = None
     IMPORTANT_EMAIL_SUBJECTS = None
     IFTTT_WEBHOOK_URLS = None
@@ -45,18 +44,17 @@ class _Config:
 
 config = _Config()
 
-prevEmailTimestamp = config.INITIAL_PREV_EMAIL_TIMESTAMP
+prevEmailTimestamp = "Sat, 01 Jan 2000 00:00:00 +0000"
 prevEmailTimestampTempNew = None
-
-sentNotifications = 0
 
 
 def sendNotification(title='', text='', txtPrefix='Notification', urlsString=config.IFTTT_WEBHOOK_URLS):
     urls = urlsString.split('|')
-    for i, url in enumerate(urls):
+    deliveryStatuses = []
+    for url in urls:
         r = requests.post(url, data={'value1': title, 'value2': text, })
-        print('{} sent [{} {}, {}/{}]: {} | {}'.format(
-            txtPrefix, r.status_code, r.reason, i + 1, len(urls), title, text))
+        deliveryStatuses.append('{} {}'.format(r.status_code, r.reason))
+    print('{} sent [{}]: {} | {}'.format(txtPrefix, ', '.join(deliveryStatuses), title, text))
 
 
 def sendAdminNotificationAndPrint(title='', text=''):
@@ -71,7 +69,7 @@ def decodeMimeText(s):
 
 
 def searchNewestEmail(notificationLimit=int(config.IFTTT_NOTIFICATIONS_LIMIT), sendOnlyTestNotif=False):
-    global prevEmailTimestamp, prevEmailTimestampTempNew, sentNotifications
+    global prevEmailTimestamp, prevEmailTimestampTempNew
     server = poplib.POP3(config.POP3_SERVER)
     server.user(config.EMAIL_USER)
     server.pass_(config.EMAIL_PASSWORD)
@@ -81,10 +79,15 @@ def searchNewestEmail(notificationLimit=int(config.IFTTT_NOTIFICATIONS_LIMIT), s
 
     L = len(items)
     searchLimit = int(config.EMAIL_SEARCH_DEPTH)
+
+    sentNotifications = 0
     for i in reversed(range(max(0, L - searchLimit), L)):
         s = items[i].decode("utf-8")
         id, size = s.split(' ')
-        resp, text, octets = server.retr(id)
+        resp, text, octets = server.top(id, 0)
+        # because server.retr(id) trips seen flag, server.top(...) doesn't,
+        # and also (POSSIBLY?) double-triggers event (first - message received, second - a message is read)
+        # NOTE: .top(...) is poorly specified in RFC, therefore might be buggy depending on server
 
         text = '\n'.join(t.decode("ascii", 'ignore') for t in text)
 
@@ -118,15 +121,21 @@ def searchNewestEmail(notificationLimit=int(config.IFTTT_NOTIFICATIONS_LIMIT), s
                     sendNotification(subject, sender + ', "' + newEmailTimestamp + '", (' + subject + ')')
                     sentNotifications += 1
                     if sentNotifications >= notificationLimit:
-                        print(
-                            'Email check stopped: Limit of {} sent notifications is reached'.format(notificationLimit))
+                        print('END: Further search stopped due to reached notification limit of {}'
+                              .format(notificationLimit))
                         break
+                elif notificationLimit == 0:
+                    break
             else:
-                print('Email check stopped: Limit of "{}" email date is reached'.format(prevEmailTimestamp))
+                if sentNotifications == 0:
+                    print('No important emails since the last one at "{}"'.format(prevEmailTimestamp))
+                else:
+                    print(
+                        'END: Further search stopped due to a depth limit of "{}"'.format(prevEmailTimestamp))
                 break
     if prevEmailTimestampTempNew is not None:
         prevEmailTimestamp = prevEmailTimestampTempNew
-    prevEmailTimestampTempNew = None
+        prevEmailTimestampTempNew = None
 
 
 # This is the threading object that does all the waiting on
@@ -182,7 +191,7 @@ class IMAPListener(object):
 
     # The method that gets called when a new email arrives.
     # Replace it with something better.
-    def dosync(self):
+    def dosync(self):  # Gets triggered on new email event, but also periodically without (?) email events
         searchNewestEmail()
 
 
