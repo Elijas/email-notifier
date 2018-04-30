@@ -44,6 +44,7 @@ class _Config:
 
 config = _Config()
 
+PING_MAGIC_SUBJECT = 'X4p7QxyZZ3HTogT2bUBDz0Ci81ZfRbae5MirVZZbPLuqAB8sFtgOthLTZCLn3dxkutOgGY'
 prevEmailTimestamp = "Sat, 01 Jan 2000 00:00:00 +0000"
 prevEmailTimestampTempNew = None
 
@@ -103,6 +104,11 @@ def searchNewestEmail(notificationLimit=int(config.IFTTT_NOTIFICATIONS_LIMIT), s
         isImportantSubject = any(
             importantSubject in subject.lower() for importantSubject in
             config.IMPORTANT_EMAIL_SUBJECTS.lower().split('|'))
+
+        # Stupid way to live-test listener condition in pre-prod after recovery from errors
+        if subject == PING_MAGIC_SUBJECT and isImportantSender:
+            sendAdminNotificationAndPrint("Ping email found", "Pong.")
+            continue
 
         if (isImportantSender or isImportantSubject):
             newEmailTimestamp = d['Date']
@@ -240,16 +246,14 @@ while True:
             _sendTestNotification = False
 
             reconnectTimeout_s = 60 * 60 * 24 * 1
+            sleepUnless(timeout_s=reconnectTimeout_s,
+                        abortSleepCondition=lambda: killer.kill_now or imapClientManager.needsReset.isSet())
 
-
-            def abortSleepCondition():
-                return killer.kill_now or imapClientManager.needsReset.isSet()
-
-
-            sleepUnless(reconnectTimeout_s, abortSleepCondition)
             if imapClientManager.needsReset.isSet():
                 raise imapClientManager.needsResetExc
-            elif not abortSleepCondition():
+            elif killer.kill_now:
+                break
+            else:
                 print("Refreshing IMAP connection. timeout={}s".format(reconnectTimeout_s))
         finally:
             if imapClientManager is not None:
@@ -261,9 +265,6 @@ while True:
             print('IMAP listening has stopped, conn cleanup was run for: Listener: {}, Client: {}'
                   .format(imapClientManager is not None, imapClient is not None))
             sys.stdout.flush()  # probably not needed
-
-            if killer.kill_now:
-                break
     except imaplib2.IMAP4.abort as e:
         retryDelay_s = 30
         sendAdminNotificationAndPrint("Conn error, re {}s".format(retryDelay_s), str(e))
