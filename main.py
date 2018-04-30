@@ -140,11 +140,13 @@ def searchNewestEmail(notificationLimit=int(config.IFTTT_NOTIFICATIONS_LIMIT), s
 
 # This is the threading object that does all the waiting on
 # the event
-class IMAPListener(object):
+class IMAPClientManager(object):
     def __init__(self, conn):
         self.thread = threading.Thread(target=self.idle)
         self.M = conn
         self.event = threading.Event()
+        self.needsReset = threading.Event()
+        self.needsResetExc = None
 
     def start(self):
         self.thread.start()
@@ -175,7 +177,11 @@ class IMAPListener(object):
 
             # Do the actual idle call. This returns immediately,
             # since it's asynchronous.
-            self.M.idle(callback=callback)
+            try:
+                self.M.idle(callback=callback)
+            except imaplib2.IMAP4.abort as exc:
+                self.needsReset.set()
+                self.needsResetExc = exc
             # This waits until the event is set. The event is
             # set by the callback, when the server 'answers'
             # the idle call and the callback function gets
@@ -195,6 +201,13 @@ class IMAPListener(object):
         searchNewestEmail()
 
 
+def sleepUnless(timeout_s, abortSleepCondition):
+    for _ in range(timeout_s):
+        time.sleep(1)
+        if abortSleepCondition():
+            break
+
+
 class GracefulKiller:
     kill_now = False
 
@@ -206,14 +219,8 @@ class GracefulKiller:
         print("Caught kill signal: {}".format(signum))
         self.kill_now = True
 
-    def sleep(self, timeout_s):
-        for _ in range(timeout_s):
-            time.sleep(1)
-            if self.kill_now:
-                break
 
-
-imapListener = None
+imapClientManager = None
 imapClient = None
 killer = GracefulKiller()
 
@@ -221,11 +228,11 @@ _sendTestNotification = bool(int(config.SEND_TEST_NOTIFICATION))
 while True:
     try:
         try:
-            imapClient = imaplib2.IMAP4_SSL(config.IMAP_SERVER, timeout=60 * 28)  # Default timeout is 29min=None=60*29)
+            imapClient = imaplib2.IMAP4_SSL(config.IMAP_SERVER)
             imapClient.login(config.EMAIL_USER, config.EMAIL_PASSWORD)
             imapClient.select("INBOX")  # We need to get out of the AUTH state, so we just select the INBOX.
-            imapListener = IMAPListener(imapClient)  # Start the Idler thread
-            imapListener.start()
+            imapClientManager = IMAPClientManager(imapClient)  # Start the Idler thread
+            imapClientManager.start()
             print('IMAP listening has started')
 
             # Helps update the timestamp, so that on event only new emails are sent with notifications
@@ -233,23 +240,31 @@ while True:
             _sendTestNotification = False
 
             reconnectTimeout_s = 60 * 60 * 24 * 1
-            killer.sleep(reconnectTimeout_s)
-            if not killer.kill_now:
+
+
+            def abortSleepCondition():
+                return killer.kill_now or imapClientManager.needsReset.isSet()
+
+
+            sleepUnless(reconnectTimeout_s, abortSleepCondition)
+            if imapClientManager.needsReset.isSet():
+                raise imapClientManager.needsResetExc
+            elif not abortSleepCondition():
                 print("Refreshing IMAP connection. timeout={}s".format(reconnectTimeout_s))
         finally:
-            if imapListener is not None:
-                imapListener.stop()  # Had to do this stuff in a try-finally, since some testing went a little wrong..
-                imapListener.join()
+            if imapClientManager is not None:
+                imapClientManager.stop()  # Had to do this stuff in a try-finally, since some testing went a little wrong..
+                imapClientManager.join()
             if imapClient is not None:
                 imapClient.close()
                 imapClient.logout()  # This is important!
             print('IMAP listening has stopped, conn cleanup was run for: Listener: {}, Client: {}'
-                  .format(imapListener is not None, imapClient is not None))
+                  .format(imapClientManager is not None, imapClient is not None))
             sys.stdout.flush()  # probably not needed
 
             if killer.kill_now:
                 break
     except imaplib2.IMAP4.abort as e:
         retryDelay_s = 30
-        sendAdminNotificationAndPrint("Conn error, retrying in {}s".format(retryDelay_s), str(e))
-        killer.sleep(retryDelay_s)
+        sendAdminNotificationAndPrint("Conn error, re {}s".format(retryDelay_s), str(e))
+        sleepUnless(retryDelay_s, lambda: killer.kill_now)
