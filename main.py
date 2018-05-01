@@ -245,16 +245,13 @@ while True:
             searchNewestEmail(notificationLimit=0, sendOnlyTestNotif=_sendTestNotification)
             _sendTestNotification = False
 
-            reconnectTimeout_s = 60 * 60 * 24 * 1
-            sleepUnless(timeout_s=reconnectTimeout_s,
-                        abortSleepCondition=lambda: killer.kill_now or imapClientManager.needsReset.isSet())
+            while not killer.kill_now and not imapClientManager.needsReset.isSet():
+                time.sleep(1)
 
             if imapClientManager.needsReset.isSet():
-                raise imapClientManager.needsResetExc
+                raise imapClientManager.needsResetExc  # raises instance of imaplib2.IMAP4.abort
             elif killer.kill_now:
                 break
-            else:
-                print("Refreshing IMAP connection. timeout={}s".format(reconnectTimeout_s))
         finally:
             if imapClientManager is not None:
                 imapClientManager.stop()  # Had to do this stuff in a try-finally, since some testing went a little wrong..
