@@ -1,4 +1,4 @@
-# Rename this file to configVals.py for running in a local machine
+# Create a duplicate of this file with name "configVals.py" for setting config in a local machine
 
 # --- CONNECTION ---
 POP3_SERVER = "pop3.example.com"
