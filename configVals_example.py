@@ -10,7 +10,7 @@ IFTTT_WEBHOOK_ADMIN_URLS = "https://maker.ifttt.com/trigger/.....|https://maker.
 
 # --- SETUP ---
 IMPORTANT_EMAIL_SENDERS = "important.sender@example.com|another.sender@example.com"
-IMPORTANT_EMAIL_SUBJECTS = "urgent|hurry|fast"
+IMPORTANT_EMAIL_SUBJECTS = "urgent|hurry|fast"  # Checks if subject contains these as sub-text, case-insensitive
 
 # --- SETTINGS ---
 EMAIL_SEARCH_DEPTH = "100"  # No. of max newest emails to check, before stopping
