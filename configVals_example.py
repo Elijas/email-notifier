@@ -13,6 +13,6 @@ IMPORTANT_EMAIL_SENDERS = "important.sender@example.com|another.sender@example.c
 IMPORTANT_EMAIL_SUBJECTS = "urgent|hurry|fast"
 
 # --- SETTINGS ---
-EMAIL_SEARCH_DEPTH = "100"  # No. of nax newest emails to check, before stopping
+EMAIL_SEARCH_DEPTH = "100"  # No. of max newest emails to check, before stopping
 IFTTT_NOTIFICATIONS_LIMIT = "5"  # No. of max notifications sent, before stopping
 SEND_TEST_NOTIFICATION = '0'  # 1 or 0
