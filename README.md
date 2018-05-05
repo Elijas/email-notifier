@@ -12,6 +12,9 @@ Stable early prototype. Further development: needs refactoring with tests, futhe
 - Notifications managed by IFTTT
 - Deployed on Heroku
 
+## Deployment in Heroku
+Must additionally create config variables `HEROKU` (any value) and `LANG` (value `en_US.UTF-8`)
+
 ## Acknowledgements
 - https://gist.github.com/jexhson/3496039/
 - https://stackoverflow.com/a/31464349/1544154

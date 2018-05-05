@@ -38,6 +38,9 @@ class _Config:
             if 'HEROKU' in os.environ:
                 setattr(self, key, os.environ[key])
             else:
+                import configVals_example
+                getattr(configVals_example, key)  # Only to help to remember to update the example config file
+
                 import configVals
                 setattr(self, key, getattr(configVals, key))
 
