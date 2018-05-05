@@ -1,5 +1,5 @@
 # email-notifier
-Sends an Android notification immediately after new email (meeting certain criteria, by sender or subject) is received.
+Sends an IFTTT (Android) notification immediately after new email (meeting certain criteria, by sender or subject) is received.
 
 ## 1. Business value
 Emails that are added to Gmail through POP3/IMAP get the new email forwarded with a ~<1h delay. This program solves the serious issue when an immediate response is required following certain correspondence.
