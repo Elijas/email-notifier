@@ -263,6 +263,8 @@ while True:
                   .format(imapClientManager is not None, imapClient is not None))
             sys.stdout.flush()  # probably not needed
     except imaplib2.IMAP4.abort as e:
-        retryDelay_s = 30
+        retryDelay_s = 1
         sendAdminNotificationAndPrint("Conn error, re {}s".format(retryDelay_s), str(e))
         sleepUnless(retryDelay_s, lambda: killer.kill_now)
+        if killer.kill_now:
+            break
