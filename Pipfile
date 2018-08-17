@@ -5,6 +5,7 @@ verify_ssl = true
 [packages]
 imaplib2 = "*"
 python-dateutil = "*"
+requests = "*"
 
 [requires]
 python_version = "2.7"
