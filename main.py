@@ -260,10 +260,7 @@ while True:
                 imapClientManager.stop()  # Had to do this stuff in a try-finally, since some testing went a little wrong..
                 imapClientManager.join()
             if imapClient is not None:
-                try:
-                    imapClient.close()
-                except imaplib2.IMAP4.error:
-                    print("Warning: could not close imapClient. Possibly it wasn't open.")
+                imapClient.close()
                 imapClient.logout()  # This is important!
             print('IMAP listening has stopped, conn cleanup was run for: Listener: {}, Client: {}'
                   .format(imapClientManager is not None, imapClient is not None))
